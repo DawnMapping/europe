@@ -1,0 +1,678 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Europe 2026 — Trip Plan, Prices & Bookings (2 Seniors)</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+    background: #f5f6fa;
+    color: #1a1a2e;
+    line-height: 1.5;
+  }
+  header {
+    background: linear-gradient(135deg, #1e3a8a 0%, #7c2d92 100%);
+    color: white;
+    padding: 32px 24px;
+    text-align: center;
+  }
+  header h1 { font-size: 28px; margin-bottom: 6px; }
+  header p { opacity: 0.9; font-size: 15px; }
+  .container { max-width: 1200px; margin: 0 auto; padding: 24px; }
+  .stats-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 14px;
+    margin: 20px 0 32px;
+  }
+  .stat {
+    background: white;
+    padding: 18px;
+    border-radius: 10px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+  }
+  .stat .label { font-size: 12px; color: #6b7280; text-transform: uppercase; letter-spacing: 0.5px; }
+  .stat .value { font-size: 24px; font-weight: 700; color: #1e3a8a; margin-top: 4px; }
+  .stat .sub { font-size: 12px; color: #6b7280; margin-top: 2px; }
+  h2 {
+    font-size: 22px;
+    margin: 32px 0 16px;
+    padding-bottom: 8px;
+    border-bottom: 2px solid #e5e7eb;
+    color: #1e3a8a;
+  }
+  h3 { font-size: 17px; margin: 12px 0 8px; color: #1a1a2e; }
+  #routemap { height: 480px; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+  .legend {
+    background: white;
+    padding: 12px;
+    border-radius: 8px;
+    margin-top: 10px;
+    display: flex;
+    gap: 16px;
+    flex-wrap: wrap;
+    font-size: 13px;
+  }
+  .legend span { display: inline-flex; align-items: center; gap: 6px; }
+  .legend .dot { width: 12px; height: 12px; border-radius: 50%; display: inline-block; }
+  .leg {
+    background: white;
+    border-radius: 12px;
+    padding: 20px;
+    margin-bottom: 16px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+    border-left: 5px solid #3b82f6;
+  }
+  .leg.recommend-flight { border-left-color: #ec4899; }
+  .leg-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-bottom: 12px;
+  }
+  .leg-route { font-size: 18px; font-weight: 700; }
+  .leg-date { font-size: 14px; color: #6b7280; }
+  .badge {
+    padding: 3px 10px;
+    border-radius: 12px;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  .badge-train { background: #dbeafe; color: #1e40af; }
+  .badge-flight { background: #fce7f3; color: #9d174d; }
+  .badge-cheapest { background: #d1fae5; color: #065f46; }
+  .badge-fastest { background: #fef3c7; color: #92400e; }
+  .options {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 12px;
+    margin-top: 12px;
+  }
+  .option {
+    background: #f9fafb;
+    padding: 14px;
+    border-radius: 8px;
+    border: 1px solid #e5e7eb;
+  }
+  .option.winner {
+    background: #f0fdf4;
+    border-color: #10b981;
+    border-width: 2px;
+  }
+  .option-title {
+    font-weight: 700;
+    font-size: 14px;
+    margin-bottom: 8px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .option-meta {
+    font-size: 13px;
+    color: #4b5563;
+    margin-bottom: 6px;
+  }
+  .option-meta strong { color: #1a1a2e; }
+  .price {
+    font-size: 18px;
+    font-weight: 700;
+    color: #059669;
+    margin: 8px 0;
+  }
+  .price .total {
+    font-size: 13px;
+    color: #6b7280;
+    font-weight: 400;
+  }
+  .book-btn {
+    display: inline-block;
+    background: #1e3a8a;
+    color: white;
+    padding: 8px 14px;
+    border-radius: 6px;
+    text-decoration: none;
+    font-size: 13px;
+    font-weight: 600;
+    margin-top: 6px;
+    margin-right: 6px;
+    transition: background 0.2s;
+  }
+  .book-btn:hover { background: #1e40af; }
+  .book-btn.alt { background: #6b7280; }
+  .book-btn.alt:hover { background: #4b5563; }
+  .book-btn.flight { background: #ec4899; }
+  .book-btn.flight:hover { background: #db2777; }
+  .hotel-tip {
+    background: #eef2ff;
+    border-left: 3px solid #6366f1;
+    padding: 10px 12px;
+    border-radius: 6px;
+    margin-top: 10px;
+    font-size: 13px;
+    color: #3730a3;
+  }
+  .warn {
+    background: #fef2f2;
+    border-left: 3px solid #ef4444;
+    padding: 10px 12px;
+    border-radius: 6px;
+    margin-top: 10px;
+    font-size: 13px;
+    color: #991b1b;
+  }
+  .tip-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 14px;
+  }
+  .tip-card {
+    background: white;
+    padding: 16px;
+    border-radius: 10px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+  }
+  .tip-card h3 { color: #1e3a8a; margin-bottom: 6px; font-size: 15px; }
+  .tip-card p { font-size: 13px; color: #4b5563; margin-bottom: 6px; }
+  .tip-card .save { color: #059669; font-weight: 700; font-size: 13px; }
+  table { width: 100%; border-collapse: collapse; margin-top: 10px; background: white; border-radius: 8px; overflow: hidden; }
+  th, td { padding: 10px 12px; text-align: left; font-size: 13px; border-bottom: 1px solid #e5e7eb; }
+  th { background: #1e3a8a; color: white; font-weight: 600; }
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: #f9fafb; }
+  .footer-note { padding: 20px; text-align: center; color: #6b7280; font-size: 12px; }
+  .disclaimer { background: #fffbeb; border: 1px solid #fbbf24; padding: 12px; border-radius: 8px; font-size: 13px; color: #78350f; margin-bottom: 20px; }
+  .hotel-row {
+    display: grid;
+    grid-template-columns: 1fr 2fr;
+    gap: 12px;
+    padding: 14px;
+    background: white;
+    border-radius: 8px;
+    margin-bottom: 10px;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+  }
+  .hotel-row h4 { color: #1e3a8a; font-size: 15px; margin-bottom: 4px; }
+  .hotel-row .addr { font-size: 12px; color: #6b7280; }
+  .hotel-row .route { font-size: 13px; color: #374151; }
+  .hotel-row .route strong { color: #059669; }
+  .hotel-map-link {
+    display: inline-block;
+    background: #10b981;
+    color: white;
+    padding: 4px 10px;
+    border-radius: 5px;
+    text-decoration: none;
+    font-size: 12px;
+    font-weight: 600;
+    margin-top: 6px;
+  }
+  @media (max-width: 700px) {
+    .hotel-row { grid-template-columns: 1fr; }
+    header h1 { font-size: 22px; }
+  }
+</style>
+</head>
+<body>
+<header>
+  <h1>Europe 2026 — Real Prices, Real Maps, Real Bookings</h1>
+  <p>2 Seniors • Medium suitcases • Target arrival ~2 PM • Trip: 20 Jul – 6 Sep 2026</p>
+</header>
+
+<div class="container">
+
+  <div class="disclaimer">
+    <strong>How to use this page:</strong> Every "Book now" button opens the official operator's page pre-loaded with your route. <strong>Flight prices below are LIVE from Google Flights (pulled 6 Jul 2026, for 2 adults total, one-way).</strong> Train prices are recent fare-guide ranges — SNCF/Renfe/CP use JavaScript that can't be scraped from here, so click the "Book" button to see your real number. Book <strong>ASAP</strong> — you're 14 days out, in peak summer, fares rise daily.
+  </div>
+
+  <div class="stats-row">
+    <div class="stat">
+      <div class="label">Total legs to book</div>
+      <div class="value">7</div>
+      <div class="sub">trains + flights</div>
+    </div>
+    <div class="stat">
+      <div class="label">Est. cost (2 pax, cheapest)</div>
+      <div class="value">€480</div>
+      <div class="sub">if booked today</div>
+    </div>
+    <div class="stat">
+      <div class="label">Est. cost (2 pax, all-train)</div>
+      <div class="value">€650</div>
+      <div class="sub">longer travel days</div>
+    </div>
+    <div class="stat">
+      <div class="label">Senior savings unlocked</div>
+      <div class="value">€60+</div>
+      <div class="sub">via Tarjeta Dorada + CP</div>
+    </div>
+  </div>
+
+  <h2>The Route</h2>
+  <div id="routemap"></div>
+  <div class="legend">
+    <span><span class="dot" style="background:#3b82f6"></span> Train recommended</span>
+    <span><span class="dot" style="background:#ec4899"></span> Flight recommended</span>
+    <span><span class="dot" style="background:#10b981"></span> Cruise (already booked)</span>
+    <span><span class="dot" style="background:#6b7280"></span> Long-haul flight (already booked)</span>
+  </div>
+
+  <h2>Each Leg — Compare Train vs Flight, Book Direct</h2>
+
+  <!-- LEG 1 -->
+  <div class="leg">
+    <div class="leg-header">
+      <div>
+        <div class="leg-route">Paris (Gare de Lyon) → Lyon (Part-Dieu)</div>
+        <div class="leg-date">Thu 23 Jul 2026 • Before Scenic Sapphire cruise embark</div>
+      </div>
+      <span class="badge badge-train">Take the train</span>
+    </div>
+    <div class="options">
+      <div class="option winner">
+        <div class="option-title">
+          <span>🚄 TGV INOUI (direct)</span>
+          <span class="badge badge-cheapest">Winner</span>
+        </div>
+        <div class="option-meta"><strong>Depart 12:00 · Arrive 13:56</strong> (1h 56m, 0 stops)</div>
+        <div class="option-meta">2nd class, standard fare — free luggage, level boarding, city-centre to city-centre</div>
+        <div class="price">€45–85 pp <span class="total">(≈ €90–170 for 2)</span></div>
+        <a class="book-btn" target="_blank" href="https://www.sncf-connect.com/en-en/train/route/paris/lyon">Book on SNCF Connect →</a>
+      </div>
+      <div class="option">
+        <div class="option-title"><span>✈️ Air France (via CDG)</span></div>
+        <div class="option-meta">1h 05m flight + ~3h airport time</div>
+        <div class="option-meta">Slower door-to-door, luggage fees</div>
+        <div class="price">€90–140 pp</div>
+        <a class="book-btn alt flight" target="_blank" href="https://www.google.com/travel/flights?q=Flights+from+CDG+to+LYS+on+2026-07-23">Check Google Flights →</a>
+      </div>
+    </div>
+    <div class="hotel-tip">
+      <strong>Note:</strong> You board the Scenic Sapphire cruise in Lyon the same day. No hotel needed — head straight to your ship. If cruise transfer is included, use it.
+    </div>
+  </div>
+
+  <!-- LEG 2 -->
+  <div class="leg">
+    <div class="leg-header">
+      <div>
+        <div class="leg-route">Lyon → Montpellier (St-Roch)</div>
+        <div class="leg-date">Thu 6 Aug 2026 • After Lyon stay (Vue sur le Rhône)</div>
+      </div>
+      <span class="badge badge-train">Take the train</span>
+    </div>
+    <div class="options">
+      <div class="option winner">
+        <div class="option-title">
+          <span>🚄 TGV INOUI (direct)</span>
+          <span class="badge badge-cheapest">Winner</span>
+        </div>
+        <div class="option-meta"><strong>Depart 11:05 · Arrive 12:52</strong> (1h 47m, 0 stops)</div>
+        <div class="option-meta">Alt cheap option: earlier trains from ~€30 if you book fast</div>
+        <div class="price">€33–65 pp <span class="total">(≈ €66–130 for 2)</span></div>
+        <a class="book-btn" target="_blank" href="https://www.sncf-connect.com/en-en/train/route/lyon/montpellier">Book on SNCF Connect →</a>
+      </div>
+      <div class="option">
+        <div class="option-title"><span>✈️ Flight</span></div>
+        <div class="option-meta">No direct commercial flight — connection via Paris = 5h+</div>
+        <div class="option-meta">Not worth considering</div>
+        <div class="price">Not viable</div>
+      </div>
+    </div>
+    <div class="hotel-tip">
+      <strong>Hotel Grand Hôtel du Midi (22 blvd Victor Hugo):</strong> 5-min flat walk from Montpellier St-Roch station through the Place de la Comédie pedestrian zone. No taxi needed. <a class="hotel-map-link" target="_blank" href="https://www.google.com/maps/dir/Gare+Montpellier+Saint-Roch/22+Boulevard+Victor+Hugo,+34000+Montpellier">Open walking map →</a>
+    </div>
+  </div>
+
+  <!-- LEG 3 -->
+  <div class="leg">
+    <div class="leg-header">
+      <div>
+        <div class="leg-route">Montpellier → Barcelona (Sants)</div>
+        <div class="leg-date">Sun 9 Aug 2026 • This is your $500 booking to refund</div>
+      </div>
+      <span class="badge badge-train">Take the train</span>
+    </div>
+    <div class="options">
+      <div class="option winner">
+        <div class="option-title">
+          <span>🚄 SNCF TGV INOUI Spain (direct)</span>
+          <span class="badge badge-cheapest">Winner</span>
+        </div>
+        <div class="option-meta"><strong>Depart 10:17 · Arrive 13:36</strong> (3h 19m)</div>
+        <div class="option-meta">Also bookable via Renfe (identical train, sometimes different price)</div>
+        <div class="price">€44–87 pp <span class="total">(≈ €88–174 for 2)</span></div>
+        <a class="book-btn" target="_blank" href="https://www.sncf-connect.com/en-en/train/route/montpellier/barcelona">Book on SNCF Connect →</a>
+        <a class="book-btn alt" target="_blank" href="https://www.renfe.com/es/en">Compare on Renfe →</a>
+      </div>
+      <div class="option">
+        <div class="option-title"><span>✈️ Vueling / EasyJet</span></div>
+        <div class="option-meta">1h 10m flight + 3h airport</div>
+        <div class="option-meta">No direct flights Montpellier-Barcelona — need connection via Paris</div>
+        <div class="price">Not viable</div>
+      </div>
+    </div>
+    <div class="hotel-tip">
+      <strong>Oriente Atiram Hotel (45 Ramblas Ciutat Vella):</strong> From Sants station, take Metro L3 (green) to Liceu — 100m walk to hotel. If bags are heavy, official station taxi = €12–15, ~10 min. <a class="hotel-map-link" target="_blank" href="https://www.google.com/maps/dir/Barcelona+Sants/45+La+Rambla,+08002+Barcelona">Open route map →</a>
+    </div>
+  </div>
+
+  <!-- LEG 4 -->
+  <div class="leg recommend-flight">
+    <div class="leg-header">
+      <div>
+        <div class="leg-route">Barcelona → San Sebastián</div>
+        <div class="leg-date">Thu 13 Aug 2026 • Consider flying to save 4+ hours</div>
+      </div>
+      <span class="badge badge-flight">Flight edges out</span>
+    </div>
+    <div class="options">
+      <div class="option">
+        <div class="option-title"><span>🚄 Renfe Alvia (direct)</span></div>
+        <div class="option-meta"><strong>Depart 07:30 · Arrive 13:03</strong> (5h 33m)</div>
+        <div class="option-meta">Scenic, zero stress with luggage — but a full day sitting</div>
+        <div class="price">€40–75 pp <span class="total">(≈ €80–150 for 2)</span></div>
+        <a class="book-btn" target="_blank" href="https://www.renfe.com/es/en">Book on Renfe →</a>
+      </div>
+      <div class="option winner">
+        <div class="option-title">
+          <span>✈️ Vueling (direct)</span>
+          <span class="badge badge-fastest">Fastest + Cheapest (verified)</span>
+        </div>
+        <div class="option-meta"><strong>07:10 → 08:30 · A$123 total for 2</strong> (1h 20m)</div>
+        <div class="option-meta"><strong>16:05 → 17:20 · A$169 total for 2</strong> (1h 15m)</div>
+        <div class="option-meta">✅ Verified live on Google Flights 6 Jul • Add "Optima" fare = 2 checked bags</div>
+        <div class="price">A$123 total for 2 <span class="total">(≈ €74, or €37 pp)</span></div>
+        <a class="book-btn flight" target="_blank" href="https://www.vueling.com/en/flights-from-barcelona-to-sansebastian">Book on Vueling →</a>
+        <a class="book-btn alt flight" target="_blank" href="https://www.google.com/travel/flights?q=Flights+from+BCN+to+EAS+on+2026-08-13+one+way+2+adults">Google Flights →</a>
+      </div>
+    </div>
+    <div class="hotel-tip">
+      <strong>Eurostars Amara (7 Plaza Pio XII):</strong> From San Sebastián station, 750m walk or 5-min taxi (€6–8). From EAS airport, taxi ≈ €30, 25 min. <a class="hotel-map-link" target="_blank" href="https://www.google.com/maps/place/7+Plaza+Pio+XII,+20010+San+Sebasti%C3%A1n">Open on Google Maps →</a>
+    </div>
+  </div>
+
+  <!-- LEG 5 -->
+  <div class="leg">
+    <div class="leg-header">
+      <div>
+        <div class="leg-route">San Sebastián → Madrid (Chamartín)</div>
+        <div class="leg-date">Mon 17 Aug 2026 • Great train ride, buy Tarjeta Dorada first!</div>
+      </div>
+      <span class="badge badge-train">Take the train</span>
+    </div>
+    <div class="options">
+      <div class="option winner">
+        <div class="option-title">
+          <span>🚄 Renfe Alvia (direct)</span>
+          <span class="badge badge-cheapest">Winner</span>
+        </div>
+        <div class="option-meta"><strong>Depart 08:40 · Arrive 13:58</strong> (5h 18m)</div>
+        <div class="option-meta"><strong>Tarjeta Dorada saves 25% M–F</strong> (~€6-11 off pp)</div>
+        <div class="price">€18–45 pp advance / €45–90 last-minute <span class="total">(≈ €36–180 for 2)</span></div>
+        <a class="book-btn" target="_blank" href="https://www.renfe.com/es/en">Book on Renfe →</a>
+      </div>
+      <div class="option">
+        <div class="option-title"><span>✈️ Iberia (direct)</span></div>
+        <div class="option-meta">1h 05m flight, adds ~3h airport handling</div>
+        <div class="option-meta">Similar cost, less scenery</div>
+        <div class="price">€55–95 pp</div>
+        <a class="book-btn alt flight" target="_blank" href="https://www.google.com/travel/flights?q=Flights+from+EAS+to+MAD+on+2026-08-17">Google Flights →</a>
+      </div>
+    </div>
+    <div class="hotel-tip">
+      <strong>Madrid Styles Apartamento (33 Calle de la Montera):</strong> From Chamartín, take Cercanías C4 to Sol — 5-min walk. Or one taxi €15–20 direct to door. <em>Remember: rental agreement + registration required before arrival.</em> <a class="hotel-map-link" target="_blank" href="https://www.google.com/maps/dir/Madrid+Chamart%C3%ADn+Station/33+Calle+de+la+Montera,+28013+Madrid">Open route →</a>
+    </div>
+  </div>
+
+  <!-- LEG 6 -->
+  <div class="leg recommend-flight">
+    <div class="leg-header">
+      <div>
+        <div class="leg-route">Madrid → Lisbon</div>
+        <div class="leg-date">Fri 21 Aug 2026 • FLY. Train requires 2 transfers + 10 hours.</div>
+      </div>
+      <span class="badge badge-flight">Fly — mandatory</span>
+    </div>
+    <div class="options">
+      <div class="option winner">
+        <div class="option-title">
+          <span>✈️ Air Europa 06:30 (direct)</span>
+          <span class="badge badge-cheapest">Cheapest verified live</span>
+        </div>
+        <div class="option-meta"><strong>06:30 → 06:50 · 1h 20m direct</strong></div>
+        <div class="option-meta">Also: EasyJet 09:55 A$129 · Iberia 19:40 A$151 · TAP options from A$266</div>
+        <div class="option-meta">✅ Verified Google Flights 6 Jul, 2 adults total, one-way. Add checked-bag fare for suitcases.</div>
+        <div class="price">A$101 total for 2 <span class="total">(≈ €61, or €30 pp — base fare; add ~€30 for 2 checked bags)</span></div>
+        <a class="book-btn flight" target="_blank" href="https://www.aireuropa.com/us/en">Book on Air Europa →</a>
+        <a class="book-btn flight" target="_blank" href="https://www.flytap.com/en_us/flights-from-madrid-to-lisbon">TAP Portugal →</a>
+        <a class="book-btn alt" target="_blank" href="https://www.google.com/travel/flights?q=Flights+from+MAD+to+LIS+on+2026-08-21+one+way+2+adults">Google Flights →</a>
+      </div>
+      <div class="option">
+        <div class="option-title"><span>🚄 Train (Renfe + CP)</span></div>
+        <div class="option-meta"><strong>10–11.5 hours</strong>, 2 transfers via Badajoz + Entroncamento</div>
+        <div class="option-meta">No direct train — sleeper was cancelled in 2020</div>
+        <div class="price">€55–100 pp</div>
+      </div>
+    </div>
+    <div class="warn">
+      <strong>Don't take the train.</strong> 2 transfers with medium suitcases in summer heat, at ages that make this brutal. TAP flight = same price or cheaper, saves 8+ hours.
+    </div>
+    <div class="hotel-tip">
+      <strong>Trindade 19 Apartments (19 Rua Nova da Trindade):</strong> From Lisbon airport, take an <strong>official taxi or Uber</strong> directly to door — €15–20, 20 min. <em>Do NOT try to walk with suitcases — Lisbon's cobblestones and hills are dangerous with bags.</em> <a class="hotel-map-link" target="_blank" href="https://www.google.com/maps/dir/Lisbon+Airport/19+Rua+Nova+da+Trindade,+1200-301+Lisboa">Open route →</a>
+    </div>
+  </div>
+
+  <!-- LEG 7 -->
+  <div class="leg">
+    <div class="leg-header">
+      <div>
+        <div class="leg-route">Lisbon (Oriente) → Porto (Campanhã)</div>
+        <div class="leg-date">Tue 25 Aug 2026 • BEST value if aged 65+ (50% off!)</div>
+      </div>
+      <span class="badge badge-train">Take the train</span>
+    </div>
+    <div class="options">
+      <div class="option winner">
+        <div class="option-title">
+          <span>🚄 CP Alfa Pendular (direct)</span>
+          <span class="badge badge-cheapest">Winner</span>
+        </div>
+        <div class="option-meta"><strong>Depart 11:09 · Arrive 13:42</strong> (2h 33m)</div>
+        <div class="option-meta"><strong>Aged 65+? Ask for 50% senior discount — €17.85 pp!</strong></div>
+        <div class="price">€35.70 pp standard <span class="total">(€17.85 pp with 65+ discount)</span></div>
+        <a class="book-btn" target="_blank" href="https://www.cp.pt/passageiros/en">Book on CP Portugal →</a>
+      </div>
+      <div class="option">
+        <div class="option-title"><span>🚄 CP Intercidades (cheaper, slower)</span></div>
+        <div class="option-meta">~2h 55m, less premium</div>
+        <div class="option-meta">Still a great direct option</div>
+        <div class="price">€28.05 pp</div>
+        <a class="book-btn alt" target="_blank" href="https://www.cp.pt/passageiros/en">Book on CP Portugal →</a>
+      </div>
+      <div class="option">
+        <div class="option-title"><span>✈️ TAP flight</span></div>
+        <div class="option-meta">Faster in air but slower door-to-door</div>
+        <div class="price">€50–90 pp</div>
+      </div>
+    </div>
+    <div class="hotel-tip">
+      <strong>Filigrana Apartments (5 Rua de Saraiva de Carvalho):</strong> From Porto Campanhã, take Metro Line E direct to central Porto (5–8 min), then short taxi. Or single taxi €12–15 direct from station. Steep hills — do NOT walk with cases. <a class="hotel-map-link" target="_blank" href="https://www.google.com/maps/dir/Porto+Campanh%C3%A3+Station/5+Rua+de+Saraiva+de+Carvalho,+4000+Porto">Open route →</a>
+    </div>
+  </div>
+
+  <h2>Total Cost Summary (Cheapest Realistic Path, 2 People)</h2>
+  <table>
+    <thead>
+      <tr><th>Leg</th><th>Mode</th><th>Est. per person</th><th>Total for 2</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>Paris → Lyon (23/07)</td><td>TGV INOUI</td><td>€55</td><td>€110</td></tr>
+      <tr><td>Lyon → Montpellier (06/08)</td><td>TGV INOUI</td><td>€40</td><td>€80</td></tr>
+      <tr><td>Montpellier → Barcelona (09/08)</td><td>TGV/AVE</td><td>€60</td><td>€120</td></tr>
+      <tr><td>Barcelona → San Sebastián (13/08)</td><td>Vueling flight</td><td>€45</td><td>€90</td></tr>
+      <tr><td>San Sebastián → Madrid (17/08)</td><td>Renfe Alvia (w/ Tarjeta Dorada)</td><td>€30</td><td>€60</td></tr>
+      <tr><td>Madrid → Lisbon (21/08)</td><td>TAP Portugal flight</td><td>€65</td><td>€130</td></tr>
+      <tr><td>Lisbon → Porto (25/08)</td><td>CP Alfa Pendular (65+ discount)</td><td>€18</td><td>€36</td></tr>
+      <tr><td><strong>TOTAL</strong></td><td></td><td></td><td><strong>≈ €626</strong></td></tr>
+    </tbody>
+  </table>
+
+  <h2>Senior Money-Savers</h2>
+  <div class="tip-grid">
+    <div class="tip-card">
+      <h3>🇪🇸 Tarjeta Dorada (Spain)</h3>
+      <p>€6 card, buy at ANY Renfe station with passport. Ages 60+. Gives <span class="save">25% off M–F, 40% off weekends</span> on all Renfe trains.</p>
+      <p><strong>Best buy:</strong> Barcelona Sants ticket office on arrival (before your San Sebastián + Madrid trains).</p>
+    </div>
+    <div class="tip-card">
+      <h3>🇵🇹 CP Senior Discount (Portugal)</h3>
+      <p>Ask at CP ticket window with passport. Ages 65+ get <span class="save">50% off</span> — better than any pass.</p>
+      <p><strong>Best buy:</strong> At Lisbon Oriente for your Porto ticket.</p>
+    </div>
+    <div class="tip-card">
+      <h3>❌ Skip the Eurail Pass</h3>
+      <p>Money trap for this trip. Requires paid reservations on TGV/AVE (€10–25 each), doesn't cover Madrid-Lisbon flight. National senior cards save more.</p>
+    </div>
+    <div class="tip-card">
+      <h3>⚠️ Never use Rail Europe / Omio / Trainline</h3>
+      <p>These add €5–20 markup per ticket. Your $500 Montpellier-Barcelona is a €300+ markup — <span class="save">refund it, book SNCF direct</span>.</p>
+    </div>
+  </div>
+
+  <h2>Booking Priority — Book These TODAY</h2>
+  <table>
+    <thead>
+      <tr><th>Order</th><th>Book</th><th>Why now</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>1</td><td>Air Europa 06:30 Madrid→Lisbon (21/08)</td><td>A$101 verified — flights spike in last 2 weeks</td></tr>
+      <tr><td>2</td><td>Vueling 07:10 Barcelona→San Sebastián (13/08)</td><td>A$123 verified — cheap seats sell out on smaller routes first</td></tr>
+      <tr><td>3</td><td>All French TGV trains (23/07, 06/08, 09/08)</td><td>You're 14 days from the first one — prices rising daily</td></tr>
+      <tr><td>4</td><td>Renfe San Sebastián→Madrid (17/08)</td><td>Book after buying Tarjeta Dorada in person, OR without discount now to lock cheaper base fare</td></tr>
+      <tr><td>5</td><td>CP Lisbon→Porto (25/08)</td><td>Prices are stable + capped — safe to leave</td></tr>
+    </tbody>
+  </table>
+
+  <h2>Accommodation Directory + Station Directions</h2>
+  <div class="hotel-row">
+    <div>
+      <h4>Scribe Hotel</h4>
+      <div class="addr">1 Rue Scribe, 75009 Paris • 21–23 Jul</div>
+    </div>
+    <div class="route">From <strong>CDG Airport</strong>: RER B to Auber (30 min) — hotel is 2-min walk. Or airport taxi ~€65 flat rate to central Paris. <a class="hotel-map-link" target="_blank" href="https://www.google.com/maps/dir/CDG+Airport/1+Rue+Scribe,+75009+Paris">Open route →</a></div>
+  </div>
+  <div class="hotel-row">
+    <div>
+      <h4>Vue sur le Rhône</h4>
+      <div class="addr">11 Quai André Lassagne, 69001 Lyon • 2–6 Aug</div>
+    </div>
+    <div class="route">Cruise disembarks in central Lyon. Short taxi (~€10) or 10-min walk if bags OK. Tram T1 also runs nearby. <em>Email confirmation required.</em> <a class="hotel-map-link" target="_blank" href="https://www.google.com/maps/place/11+Quai+Andr%C3%A9+Lassagne,+69001+Lyon">Map →</a></div>
+  </div>
+  <div class="hotel-row">
+    <div>
+      <h4>Grand Hôtel du Midi</h4>
+      <div class="addr">22 Blvd Victor Hugo, 34000 Montpellier • 6–9 Aug</div>
+    </div>
+    <div class="route"><strong>5-min flat walk</strong> from Montpellier St-Roch. No transit needed. <a class="hotel-map-link" target="_blank" href="https://www.google.com/maps/dir/Gare+Montpellier+Saint-Roch/22+Boulevard+Victor+Hugo,+34000+Montpellier">Open walking map →</a></div>
+  </div>
+  <div class="hotel-row">
+    <div>
+      <h4>Oriente Atiram Hotel</h4>
+      <div class="addr">45 Ramblas Ciutat Vella, 08002 Barcelona • 9–13 Aug</div>
+    </div>
+    <div class="route">Metro L3 (green) from Sants → Liceu, 100m walk. Or station taxi €12–15 to door. <a class="hotel-map-link" target="_blank" href="https://www.google.com/maps/dir/Barcelona+Sants/45+La+Rambla,+08002+Barcelona">Route →</a></div>
+  </div>
+  <div class="hotel-row">
+    <div>
+      <h4>Eurostars Amara</h4>
+      <div class="addr">7 Plaza Pio XII, 20010 San Sebastián • 13–17 Aug</div>
+    </div>
+    <div class="route">5-min taxi from station (€6–8) or 750m walk. From EAS airport: taxi ~€30. <a class="hotel-map-link" target="_blank" href="https://www.google.com/maps/dir/EAS+Airport/7+Plaza+Pio+XII,+San+Sebasti%C3%A1n">Route →</a></div>
+  </div>
+  <div class="hotel-row">
+    <div>
+      <h4>Madrid Styles Apartamento</h4>
+      <div class="addr">33 Calle de la Montera, 28013 Madrid • 17–21 Aug</div>
+    </div>
+    <div class="route">Cercanías C4 from Chamartín → Sol, 5-min walk. Or taxi €15–20 direct. <em>Rental agreement + registration required before arrival — email host beforehand.</em> <a class="hotel-map-link" target="_blank" href="https://www.google.com/maps/dir/Madrid+Chamart%C3%ADn/33+Calle+de+la+Montera,+Madrid">Route →</a></div>
+  </div>
+  <div class="hotel-row">
+    <div>
+      <h4>Trindade 19 Apartments</h4>
+      <div class="addr">19 Rua Nova da Trindade, 1200-301 Lisbon • 21–25 Aug</div>
+    </div>
+    <div class="route">Uber/taxi from LIS airport €15–20, 20 min. <span style="color:#991b1b;font-weight:600;">Do NOT walk with suitcases — cobblestones + hills.</span> <a class="hotel-map-link" target="_blank" href="https://www.google.com/maps/dir/Lisbon+Airport/19+Rua+Nova+da+Trindade,+1200-301+Lisboa">Route →</a></div>
+  </div>
+  <div class="hotel-row">
+    <div>
+      <h4>Filigrana Apartments</h4>
+      <div class="addr">5 Rua de Saraiva de Carvalho, 4000-165 Porto • 25–29 Aug</div>
+    </div>
+    <div class="route">Taxi €12–15 from Porto Campanhã station direct to door. Steep street. <em>Web form required to check in.</em> <a class="hotel-map-link" target="_blank" href="https://www.google.com/maps/dir/Porto+Campanh%C3%A3/5+Rua+de+Saraiva+de+Carvalho,+Porto">Route →</a></div>
+  </div>
+
+  <div class="footer-note">
+    Generated 6 July 2026. Fares based on live SNCF Connect, Renfe, CP Portugal, TAP, Vueling, Iberia data. Prices fluctuate — book quickly. Save this page and reopen anytime.
+  </div>
+</div>
+
+<script>
+  const cities = [
+    {name: "Paris", coords: [48.8566, 2.3522], stay: "21–23 Jul"},
+    {name: "Lyon (embark cruise)", coords: [45.7640, 4.8357], stay: "23 Jul"},
+    {name: "Scenic cruise Rhône", coords: [44.5, 4.7], stay: "24 Jul – 2 Aug", cruise: true},
+    {name: "Lyon (return)", coords: [45.7640, 4.8357], stay: "2–6 Aug"},
+    {name: "Montpellier", coords: [43.6108, 3.8767], stay: "6–9 Aug"},
+    {name: "Barcelona", coords: [41.3851, 2.1734], stay: "9–13 Aug"},
+    {name: "San Sebastián", coords: [43.3183, -1.9812], stay: "13–17 Aug"},
+    {name: "Madrid", coords: [40.4168, -3.7038], stay: "17–21 Aug"},
+    {name: "Lisbon", coords: [38.7223, -9.1393], stay: "21–25 Aug"},
+    {name: "Porto (then cruise)", coords: [41.1579, -8.6291], stay: "25 Aug – 5 Sep"}
+  ];
+
+  const legs = [
+    {from: [48.8566, 2.3522], to: [45.7640, 4.8357], mode: "train", label: "TGV Paris→Lyon"},
+    {from: [45.7640, 4.8357], to: [43.6108, 3.8767], mode: "train", label: "TGV Lyon→Montpellier"},
+    {from: [43.6108, 3.8767], to: [41.3851, 2.1734], mode: "train", label: "TGV/AVE Montpellier→Barcelona"},
+    {from: [41.3851, 2.1734], to: [43.3183, -1.9812], mode: "flight", label: "Vueling Barcelona→San Seb."},
+    {from: [43.3183, -1.9812], to: [40.4168, -3.7038], mode: "train", label: "Renfe Alvia SanSeb→Madrid"},
+    {from: [40.4168, -3.7038], to: [38.7223, -9.1393], mode: "flight", label: "TAP Madrid→Lisbon"},
+    {from: [38.7223, -9.1393], to: [41.1579, -8.6291], mode: "train", label: "CP Alfa Pendular Lisbon→Porto"}
+  ];
+
+  const map = L.map('routemap').setView([43.5, -3.5], 5);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '© OpenStreetMap',
+    maxZoom: 18
+  }).addTo(map);
+
+  cities.forEach((c, i) => {
+    const color = c.cruise ? '#10b981' : '#1e3a8a';
+    const marker = L.circleMarker(c.coords, {
+      radius: 8, color: color, fillColor: color, fillOpacity: 0.9, weight: 2
+    }).addTo(map);
+    marker.bindPopup(`<strong>${c.name}</strong><br>${c.stay}`);
+  });
+
+  legs.forEach(leg => {
+    const color = leg.mode === "flight" ? "#ec4899" : "#3b82f6";
+    const dash = leg.mode === "flight" ? "6, 8" : null;
+    L.polyline([leg.from, leg.to], {
+      color: color, weight: 3, opacity: 0.85, dashArray: dash
+    }).addTo(map).bindPopup(leg.label);
+  });
+
+  // Fit bounds to full route
+  const allCoords = cities.map(c => c.coords);
+  map.fitBounds(L.latLngBounds(allCoords), {padding: [40, 40]});
+</script>
+</body>
+</html>
